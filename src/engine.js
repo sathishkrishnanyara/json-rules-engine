@@ -289,9 +289,43 @@ class Engine extends EventEmitter {
       debug('engine::run initialized runtime fact', { id: fact.id, value: fact.value, type: typeof fact.value })
     }
     const orderedSets = this.prioritizeRules()
-    let cursor = Promise.resolve()
+
+    try {
+    for (const set of orderedSets) {
+      await this.evaluateRules(set, almanac);
+      // Optional: minor delay between sets to avoid CPU spike
+      // await new Promise(res => setTimeout(res, 1));
+    }
+
+    this.status = FINISHED;
+    debug('engine::run completed');
+
+    const ruleResults = almanac.getResults();
+    const { results, failureResults } = ruleResults.reduce(
+      (hash, ruleResult) => {
+        const group = ruleResult.result ? 'results' : 'failureResults';
+        hash[group].push(ruleResult);
+        return hash;
+      },
+      { results: [], failureResults: [] }
+    );
+
+    return {
+      almanac,
+      results,
+      failureResults,
+      events: almanac.getEvents('success'),
+      failureEvents: almanac.getEvents('failure')
+    };
+  } catch (err) {
+    this.status = FINISHED;
+    return Promise.reject(err);
+  }
+    /* let cursor = Promise.resolve()
     // for each rule set, evaluate in parallel,
     // before proceeding to the next priority set.
+    
+    
     return new Promise((resolve, reject) => {
       orderedSets.map((set) => {
         cursor = cursor.then(() => {
@@ -317,7 +351,7 @@ class Engine extends EventEmitter {
           failureEvents: almanac.getEvents('failure')
         })
       }).catch(reject)
-    })
+    }) */
   }
 }
 
