@@ -83,7 +83,7 @@ export default class Almanac {
    */
   _setFactValue (fact, params, value) {
     const cacheKey = fact.getCacheKey(params)
-    const factValue = Promise.resolve(value)
+    const factValue = value; // Promise.resolve(value)
     if (cacheKey) {
       this.factResultsCache.set(cacheKey, factValue)
     }
